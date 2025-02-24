@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Seahawks Monitoring - Démo</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 80%;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    .connected { color: green; }
+    .disconnected { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Seahawks Nester</h1>
+  <p>Liste des Harvesters :</p>
+  <table id="harvesters-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nom</th>
+        <th>IP</th>
+        <th>État</th>
+        <th>Version</th>
+        <th>Machines détectées</th>
+        <th>Latence WAN</th>
+      </tr>
+    </thead>
+    <tbody id="harvesters-body">
+      <!-- On va remplir en JS -->
+    </tbody>
+  </table>
+
+  <script>
+    // Au chargement de la page, on récupère les data depuis /api/data
+    fetch('/api/data')
+      .then(response => response.json())
+      .then(data => {
+        const harvesters = data.harvesters || [];
+        const tbody = document.getElementById('harvesters-body');
+        
+        harvesters.forEach(h => {
+          const row = document.createElement('tr');
+          
+          row.innerHTML = `
+            <td>${h.id}</td>
+            <td>${h.name}</td>
+            <td>${h.ip}</td>
+            <td class="${h.state}">${h.state}</td>
+            <td>${h.version}</td>
+            <td>${h.num_machines}</td>
+            <td>${h.latence_wan}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      })
+      .catch(err => {
+        console.error('Erreur lors de la récupération des données :', err);
+      });
+  </script>
+</body>
+</html>
