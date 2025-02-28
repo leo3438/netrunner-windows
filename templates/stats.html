@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Statistiques des Harvesters</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        canvas {
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        /* Bouton mode sombre */
+        #dark-mode-toggle {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            padding: 10px;
+            background: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        /* Mode sombre */
+        body.dark-mode {
+            background-color: #121212;
+            color: white;
+        }
+
+        body.dark-mode canvas {
+            background: #222;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Bouton mode sombre -->
+    <button id="dark-mode-toggle">🌙 Mode sombre</button>
+
+    <h1>Statistiques des Harvesters</h1>
+
+    <canvas id="machinesChart"></canvas>
+    <canvas id="latenceChart"></canvas>
+
+    <p><a href="/">⬅ Retour à la liste</a></p>
+
+    <script>
+        // Mode sombre
+        const toggleButton = document.getElementById('dark-mode-toggle');
+
+        if (localStorage.getItem('dark-mode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            toggleButton.textContent = '☀️ Mode clair';
+        }
+
+        toggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('dark-mode', 'enabled');
+                toggleButton.textContent = '☀️ Mode clair';
+            } else {
+                localStorage.setItem('dark-mode', 'disabled');
+                toggleButton.textContent = '🌙 Mode sombre';
+            }
+        });
+
+        // Récupérer les stats via l'API
+        fetch('/api/stats')
+            .then(response => response.json())
+            .then(data => {
+                const ctx1 = document.getElementById('machinesChart').getContext('2d');
+                const ctx2 = document.getElementById('latenceChart').getContext('2d');
+
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Nombre de machines',
+                            data: data.num_machines,
+                            backgroundColor: 'blue',
+                            borderColor: 'black',
+                            borderWidth: 1
+                        }]
+                    }
+                });
+
+                new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Latence WAN (ms)',
+                            data: data.latence,
+                            backgroundColor: 'red',
+                            borderColor: 'black',
+                            borderWidth: 1
+                        }]
+                    }
+                });
+            })
+            .catch(err => console.error('Erreur de récupération des stats:', err));
+    </script>
+
+</body>
+</html>

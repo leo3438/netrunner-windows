@@ -4,30 +4,173 @@
   <meta charset="UTF-8" />
   <title>Seahawks Monitoring - Démo</title>
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-    }
-    table {
-      border-collapse: collapse;
-      width: 80%;
-      margin: 20px 0;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px 12px;
-      text-align: left;
-    }
-    th {
-      background: #f0f0f0;
-    }
-    .connected { color: green; }
-    .disconnected { color: red; }
+    /* Styles généraux */
+body {
+  font-family: 'Arial', sans-serif;
+  margin: 20px;
+  background: #f4f4f4;
+  color: #333;
+  text-align: center;
+}
+
+/* Tableaux */
+table {
+  border-collapse: collapse;
+  width: 90%;
+  margin: 20px auto;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+th, td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+th:hover {
+  background: #0056b3;
+}
+
+/* Lignes alternées */
+tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+/* État des Harvesters */
+.connected { color: green; font-weight: bold; }
+.disconnected { color: red; font-weight: bold; }
+
+/* Boutons */
+button {
+  background: #007bff;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+/* Mode sombre */
+body.dark-mode {
+  background-color: #121212;
+  color: white;
+}
+
+body.dark-mode table {
+  background: #1e1e1e;
+  color: white;
+}
+
+body.dark-mode th {
+  background: #333;
+}
+
+body.dark-mode td {
+  background: #222;
+  color: white;
+}
+
+/* Effet sur les liens */
+a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+/* Effet d'apparition avec animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+tr {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Effet de survol sur les lignes du tableau */
+tr:hover {
+  background: #e0e0e0;
+  transition: 0.3s;
+}
+
+/* Mode sombre : amélioration */
+body.dark-mode tr:hover {
+  background: #333;
+}
+
+/* Boutons avec effet de hover */
+button {
+  transition: transform 0.2s, background 0.3s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+/* Ombre légère sur le tableau */
+table {
+  transition: 0.3s;
+}
+
+table:hover {
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Animation du bouton mode sombre */
+#dark-mode-toggle {
+  transition: background 0.3s, transform 0.2s;
+}
+
+#dark-mode-toggle:hover {
+  transform: scale(1.1);
+  background: #555;
+}
+
+/* Loader pour l'attente des données */
+#loader {
+  display: none;
+  text-align: center;
+  font-size: 20px;
+  color: #007bff;
+}
+
   </style>
+  
 </head>
+
 <body>
+
+  <!-- Bouton pour le mode sombre -->
+  <button id="dark-mode-toggle">🌙 Mode sombre</button>
+
   <h1>Seahawks Nester</h1>
+  <input type="text" id="searchBox" placeholder="🔍 Rechercher un Harvester..." onkeyup="filterTable()">
+
+  <a href="/stats"><button>📊 Voir les statistiques</button></a>
   <p>Liste des Harvesters :</p>
+  <div id="loader">⏳ Chargement des données...</div>
   <table id="harvesters-table">
     <thead>
       <tr>
@@ -35,9 +178,9 @@
         <th>Nom</th>
         <th>IP</th>
         <th>État</th>
-        <th>Version</th>
-        <th>Machines détectées</th>
-        <th>Latence WAN</th>
+        <th onclick="sortTable('version')">Version <span id="icon-version">🔽</span></th>
+        <th onclick="sortTable('num_machines')">Machines détectées <span id="icon-num_machines">🔽</span></th>
+        <th onclick="sortTable('latence_wan')">Latence WAN <span id="icon-latence_wan">🔽</span></th>
       </tr>
     </thead>
     <tbody id="harvesters-body">
@@ -46,31 +189,134 @@
   </table>
 
   <script>
-    // Au chargement de la page, on récupère les data depuis /api/data
+    let harvestersData = [];
+    let sortDirection = {}; // Garde en mémoire le sens du tri (true = croissant, false = décroissant)
+
+    // Charger les données de l'API
     fetch('/api/data')
       .then(response => response.json())
       .then(data => {
-        const harvesters = data.harvesters || [];
-        const tbody = document.getElementById('harvesters-body');
-        
-        harvesters.forEach(h => {
-          const row = document.createElement('tr');
-          
-          row.innerHTML = `
-            <td>${h.id}</td>
-            <td>${h.name}</td>
-            <td>${h.ip}</td>
-            <td class="${h.state}">${h.state}</td>
-            <td>${h.version}</td>
-            <td>${h.num_machines}</td>
-            <td>${h.latence_wan}</td>
-          `;
-          tbody.appendChild(row);
-        });
+        harvestersData = data.harvesters || [];
+        renderTable();
       })
-      .catch(err => {
-        console.error('Erreur lors de la récupération des données :', err);
+      .catch(err => console.error('Erreur lors de la récupération des données :', err));
+
+    // Fonction pour afficher les données dans le tableau
+    function renderTable() {
+  const tbody = document.getElementById('harvesters-body');
+  const loader = document.getElementById("loader");
+
+  // Afficher le loader
+  loader.style.display = "block";
+  tbody.innerHTML = '';
+
+  setTimeout(() => {
+    let searchQuery = document.getElementById("searchBox").value.toLowerCase();
+
+    let filteredData = harvestersData.filter(h =>
+      h.name.toLowerCase().includes(searchQuery)
+    );
+
+    filteredData.forEach(h => {
+      const row = document.createElement('tr');
+
+      row.innerHTML = `
+        <td>${h.id}</td>
+        <td><a href="/harvester/${h.id}">${h.name}</a></td>
+        <td>${h.ip}</td>
+        <td class="${h.state}">${h.state}</td>
+        <td>${h.version}</td>
+        <td>${h.num_machines}</td>
+        <td>${h.latence_wan}</td>
+      `;
+
+      tbody.appendChild(row);
+    });
+
+    // Cacher le loader après le chargement des données
+    loader.style.display = "none";
+  }, 500); // Attendre 500ms pour l'effet de chargement
+}
+
+
+    // Fonction pour trier le tableau en cliquant sur une colonne
+    function sortTable(column) {
+      const isNumeric = column === 'num_machines' || column === 'latence_wan';
+      sortDirection[column] = !sortDirection[column]; // Alterner entre croissant/décroissant
+
+      harvestersData.sort((a, b) => {
+        let valA = a[column];
+        let valB = b[column];
+
+        // Convertir latence en nombre (ex: "28ms" -> 28, "N/A" -> 0)
+        if (column === 'latence_wan') {
+          valA = valA === "N/A" ? 0 : parseInt(valA.replace("ms", ""));
+          valB = valB === "N/A" ? 0 : parseInt(valB.replace("ms", ""));
+        }
+
+        // Comparaison
+        if (isNumeric) {
+          return sortDirection[column] ? valA - valB : valB - valA;
+        } else {
+          return sortDirection[column] ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
       });
+
+      updateIcons(column);
+      renderTable();
+    }
+
+    // Mettre à jour les icônes des en-têtes
+    function updateIcons(activeColumn) {
+      const columns = ["version", "num_machines", "latence_wan"];
+      
+      columns.forEach(col => {
+        const iconElement = document.getElementById(`icon-${col}`);
+        if (col === activeColumn) {
+          iconElement.textContent = sortDirection[col] ? "🔼" : "🔽"; // Tri croissant = 🔼, décroissant = 🔽
+        } else {
+          iconElement.textContent = "🔽"; // Reset des autres icônes
+        }
+      });
+    }
+
+    // Gestion du mode sombre
+    const toggleButton = document.getElementById('dark-mode-toggle');
+
+    // Vérifier si le mode sombre était activé
+    if (localStorage.getItem('dark-mode') === 'enabled') {
+      document.body.classList.add('dark-mode');
+      toggleButton.textContent = '☀️ Mode clair';
+    }
+
+    // Toggle du mode sombre
+    toggleButton.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+
+      if (document.body.classList.contains('dark-mode')) {
+        localStorage.setItem('dark-mode', 'enabled');
+        toggleButton.textContent = '☀️ Mode clair';
+      } else {
+        localStorage.setItem('dark-mode', 'disabled');
+        toggleButton.textContent = '🌙 Mode sombre';
+      }
+    });
+  
+    function filterTable() {
+      let input = document.getElementById("searchBox").value.toLowerCase();
+      let rows = document.querySelectorAll("#harvesters-body tr");
+  
+      rows.forEach(row => {
+        let name = row.children[1].textContent.toLowerCase();
+        if (name.includes(input)) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    }
   </script>
+  
+
 </body>
 </html>

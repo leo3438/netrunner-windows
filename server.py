@@ -7,6 +7,21 @@ app = Flask(__name__)
 def index():
     return render_template("index.html")
 
+@app.route("/harvester/<int:harvester_id>")
+def harvester_detail(harvester_id):
+    # Récupérer les données des harvesters
+    data = api_data().json['harvesters']
+    harvester = next((h for h in data if h['id'] == harvester_id), None)
+
+    if harvester:
+        return render_template("harvester.html", harvester=harvester)
+    else:
+        return "Harvester non trouvé", 404
+    
+@app.route("/stats")
+def stats():
+    return render_template("stats.html")
+
 # Exemple de route API qui renvoie du JSON
 @app.route("/api/data")
 def api_data():
@@ -32,10 +47,35 @@ def api_data():
                 "version": "1.1.5",
                 "num_machines": 8,
                 "latence_wan": "N/A"
+            },
+            {
+                "id": 3,
+                "name": "Harvester #3",
+                "ip": "192.168.15.10",
+                "state": "connected",
+                "version": "1.1.5",
+                "num_machines": 8,
+                "latence_wan": "12ms"
             }
         ]
     }
     return jsonify(fake_data)
+
+@app.route("/api/stats")
+def api_stats():
+    data = api_data().json['harvesters']
+
+    # Transformer la latence en nombre (remplacer "N/A" par 0)
+    stats_data = {
+        "labels": [h["name"] for h in data],
+        "num_machines": [h["num_machines"] for h in data],
+        "latence": [
+            int(h["latence_wan"].replace("ms", "")) if h["latence_wan"] != "N/A" else 0
+            for h in data
+        ]
+    }
+
+    return jsonify(stats_data)
 
 
 if __name__ == "__main__":
