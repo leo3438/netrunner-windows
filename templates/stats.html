@@ -2,89 +2,81 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Statistiques des Harvesters</title>
+    <title>📊 Statistiques des Harvesters et Alertes</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: sans-serif;
-            margin: 20px;
+            font-family: Arial, sans-serif;
             text-align: center;
+            margin: 20px;
         }
         canvas {
             max-width: 600px;
             margin: 20px auto;
         }
-
-        /* Bouton mode sombre */
-        #dark-mode-toggle {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            padding: 10px;
-            background: #444;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
         /* Mode sombre */
         body.dark-mode {
             background-color: #121212;
             color: white;
         }
-
-        body.dark-mode canvas {
-            background: #222;
+        .container {
+            width: 80%;
+            margin: auto;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+        }
+        body.dark-mode .card {
+            background: #1e1e1e;
+            color: white;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
         }
     </style>
 </head>
 <body>
 
-    <!-- Bouton mode sombre -->
-    <button id="dark-mode-toggle">🌙 Mode sombre</button>
+    <h1>📊 Statistiques</h1>
+    <a href="/"><button>⬅ Retour</button></a>
 
-    <h1>Statistiques des Harvesters</h1>
+    <div class="container">
+        <div class="card">
+            <h2>🖥 Harvesters</h2>
+            <canvas id="machinesChart"></canvas>
+            <canvas id="latenceChart"></canvas>
+        </div>
 
-    <canvas id="machinesChart"></canvas>
-    <canvas id="latenceChart"></canvas>
-
-    <p><a href="/">⬅ Retour à la liste</a></p>
+        <div class="card">
+            <h2>🚨 Statistiques des Alertes</h2>
+            <canvas id="alertsChart"></canvas>
+        </div>
+    </div>
 
     <script>
-        // Mode sombre
-        const toggleButton = document.getElementById('dark-mode-toggle');
-
-        if (localStorage.getItem('dark-mode') === 'enabled') {
-            document.body.classList.add('dark-mode');
-            toggleButton.textContent = '☀️ Mode clair';
-        }
-
-        toggleButton.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-
-            if (document.body.classList.contains('dark-mode')) {
-                localStorage.setItem('dark-mode', 'enabled');
-                toggleButton.textContent = '☀️ Mode clair';
-            } else {
-                localStorage.setItem('dark-mode', 'disabled');
-                toggleButton.textContent = '🌙 Mode sombre';
-            }
-        });
-
-        // Récupérer les stats via l'API
+        // Charger les statistiques des harvesters
         fetch('/api/stats')
             .then(response => response.json())
             .then(data => {
-                const ctx1 = document.getElementById('machinesChart').getContext('2d');
-                const ctx2 = document.getElementById('latenceChart').getContext('2d');
-
-                new Chart(ctx1, {
+                new Chart(document.getElementById('machinesChart').getContext('2d'), {
                     type: 'bar',
                     data: {
                         labels: data.labels,
                         datasets: [{
-                            label: 'Nombre de machines',
+                            label: 'Nombre de Machines',
                             data: data.num_machines,
                             backgroundColor: 'blue',
                             borderColor: 'black',
@@ -93,7 +85,7 @@
                     }
                 });
 
-                new Chart(ctx2, {
+                new Chart(document.getElementById('latenceChart').getContext('2d'), {
                     type: 'line',
                     data: {
                         labels: data.labels,
@@ -107,7 +99,26 @@
                     }
                 });
             })
-            .catch(err => console.error('Erreur de récupération des stats:', err));
+            .catch(err => console.error('❌ Erreur de récupération des stats:', err));
+
+        // Charger les statistiques des alertes
+        fetch('/api/alert_stats')
+            .then(response => response.json())
+            .then(alertData => {
+                new Chart(document.getElementById('alertsChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(alertData),
+                        datasets: [{
+                            label: 'Nombre d\'alertes',
+                            data: Object.values(alertData),
+                            backgroundColor: ['red', 'orange'],
+                            borderWidth: 1
+                        }]
+                    }
+                });
+            })
+            .catch(err => console.error('❌ Erreur de récupération des alertes:', err));
     </script>
 
 </body>

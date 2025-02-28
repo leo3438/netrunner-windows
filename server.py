@@ -5,6 +5,7 @@ from flask import Flask, render_template, jsonify, Response
 import threading
 from datetime import datetime
 import threading
+alertes_envoyees = set()  # Stocke les alertes déjà envoyées
 
 app = Flask(__name__)
 
@@ -110,6 +111,14 @@ SMTP_PASSWORD = "aqxrrqfjqphxqgaz"  # ATTENTION : Pour Gmail, active un mot de p
 LOG_FILE = "alerts.log"  # Fichier où on stocke les alertes
 
 def send_alert(subject, message):
+    global alertes_envoyees
+
+    alert_id = f"{subject}:{message}"  # Identifiant unique pour éviter les doublons
+    if alert_id in alertes_envoyees:
+        return  # Ne pas renvoyer une alerte déjà envoyée
+
+    alertes_envoyees.add(alert_id)  # Ajouter l'alerte à la liste des alertes envoyées
+
     def send_email():
         msg = MIMEText(message)
         msg["From"] = SMTP_USER
@@ -135,6 +144,7 @@ def send_alert(subject, message):
     email_thread = threading.Thread(target=send_email)
     email_thread.start()
 
+
 @app.route("/alerts")
 def view_alerts():
     try:
@@ -152,6 +162,25 @@ def view_alerts():
 def clear_alerts():
     open(LOG_FILE, "w").close()  # Efface le contenu du fichier
     return view_alerts()  # Recharge la page après suppression
+
+@app.route("/api/alert_stats")
+def alert_stats():
+    alert_types = {"🚨 Harvester Déconnecté": 0, "⚠️ Latence Élevée": 0}
+    
+    try:
+        with open(LOG_FILE, "r", encoding="utf-8") as log:
+            logs = log.readlines()
+
+        for line in logs:
+            if "🚨 Harvester Déconnecté" in line:
+                alert_types["🚨 Harvester Déconnecté"] += 1
+            if "⚠️ Latence Élevée" in line:
+                alert_types["⚠️ Latence Élevée"] += 1
+
+    except FileNotFoundError:
+        return jsonify({"message": "Aucune alerte enregistrée."})
+
+    return jsonify(alert_types)
 
 
 # ======================== #
