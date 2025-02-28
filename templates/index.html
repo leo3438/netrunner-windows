@@ -167,8 +167,13 @@ table:hover {
 
   <h1>Seahawks Nester</h1>
   <input type="text" id="searchBox" placeholder="🔍 Rechercher un Harvester..." onkeyup="filterTable()">
-
+</br></br>
+  <a href="/alerts"><button>📜 Voir l'Historique des Alertes</button></a>
   <a href="/stats"><button>📊 Voir les statistiques</button></a>
+</br></br>
+  <a href="/api/export/json"><button>📥 Exporter en JSON</button></a>
+  <a href="/api/export/csv"><button>📥 Exporter en CSV</button></a>
+</br></br>
   <p>Liste des Harvesters :</p>
   <div id="loader">⏳ Chargement des données...</div>
   <table id="harvesters-table">
