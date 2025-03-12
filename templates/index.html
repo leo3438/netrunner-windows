@@ -208,41 +208,37 @@ table:hover {
 
     // Fonction pour afficher les données dans le tableau
     function renderTable() {
-  const tbody = document.getElementById('harvesters-body');
-  const loader = document.getElementById("loader");
+      const tbody = document.getElementById('harvesters-body');
+      const loader = document.getElementById("loader");
 
-  // Afficher le loader
-  loader.style.display = "block";
-  tbody.innerHTML = '';
+      // Afficher le loader
+      loader.style.display = "block";
+      tbody.innerHTML = '';
 
-  setTimeout(() => {
-    let searchQuery = document.getElementById("searchBox").value.toLowerCase();
+      setTimeout(() => {
+        let searchQuery = document.getElementById("searchBox").value.toLowerCase();
+        let filteredData = harvestersData.filter(h =>
+          h.name.toLowerCase().includes(searchQuery)
+        );
 
-    let filteredData = harvestersData.filter(h =>
-      h.name.toLowerCase().includes(searchQuery)
-    );
+        filteredData.forEach(h => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${h.id}</td>
+            <td><a href="/harvester/${h.id}">${h.name}</a></td>
+            <td>${h.ip}</td>
+            <td class="${h.state}">${h.state}</td>
+            <td>${h.version}</td>
+            <td>${h.num_machines}</td>
+            <td>${h.latence_wan}</td>
+          `;
+          tbody.appendChild(row);
+        });
 
-    filteredData.forEach(h => {
-      const row = document.createElement('tr');
-
-      row.innerHTML = `
-        <td>${h.id}</td>
-        <td><a href="/harvester/${h.id}">${h.name}</a></td>
-        <td>${h.ip}</td>
-        <td class="${h.state}">${h.state}</td>
-        <td>${h.version}</td>
-        <td>${h.num_machines}</td>
-        <td>${h.latence_wan}</td>
-      `;
-
-      tbody.appendChild(row);
-    });
-
-    // Cacher le loader après le chargement des données
-    loader.style.display = "none";
-  }, 500); // Attendre 500ms pour l'effet de chargement
-}
-
+        // Cacher le loader après le chargement des données
+        loader.style.display = "none";
+      }, 500); // Attendre 500ms pour l'effet de chargement
+    }
 
     // Fonction pour trier le tableau en cliquant sur une colonne
     function sortTable(column) {
@@ -253,7 +249,7 @@ table:hover {
         let valA = a[column];
         let valB = b[column];
 
-        // Convertir latence en nombre (ex: "28ms" -> 28, "N/A" -> 0)
+        // Convertir latence en nombre
         if (column === 'latence_wan') {
           valA = valA === "N/A" ? 0 : parseInt(valA.replace("ms", ""));
           valB = valB === "N/A" ? 0 : parseInt(valB.replace("ms", ""));
@@ -278,26 +274,22 @@ table:hover {
       columns.forEach(col => {
         const iconElement = document.getElementById(`icon-${col}`);
         if (col === activeColumn) {
-          iconElement.textContent = sortDirection[col] ? "🔼" : "🔽"; // Tri croissant = 🔼, décroissant = 🔽
+          iconElement.textContent = sortDirection[col] ? "🔼" : "🔽";
         } else {
-          iconElement.textContent = "🔽"; // Reset des autres icônes
+          iconElement.textContent = "🔽"; // Reset
         }
       });
     }
 
     // Gestion du mode sombre
     const toggleButton = document.getElementById('dark-mode-toggle');
-
-    // Vérifier si le mode sombre était activé
     if (localStorage.getItem('dark-mode') === 'enabled') {
       document.body.classList.add('dark-mode');
       toggleButton.textContent = '☀️ Mode clair';
     }
 
-    // Toggle du mode sombre
     toggleButton.addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
-
       if (document.body.classList.contains('dark-mode')) {
         localStorage.setItem('dark-mode', 'enabled');
         toggleButton.textContent = '☀️ Mode clair';
@@ -321,7 +313,5 @@ table:hover {
       });
     }
   </script>
-  
-
 </body>
 </html>

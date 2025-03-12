@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>📊 Statistiques des Harvesters et Alertes</title>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -67,10 +68,16 @@
     </div>
 
     <script>
+        // Gestion du mode sombre
+        if (localStorage.getItem('dark-mode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+        }
+
         // Charger les statistiques des harvesters
         fetch('/api/stats')
             .then(response => response.json())
             .then(data => {
+                // data.labels, data.num_machines, data.latence
                 new Chart(document.getElementById('machinesChart').getContext('2d'), {
                     type: 'bar',
                     data: {
@@ -105,6 +112,12 @@
         fetch('/api/alert_stats')
             .then(response => response.json())
             .then(alertData => {
+                if (alertData.message) {
+                    // Cas "Aucune alerte enregistrée."
+                    console.log(alertData.message);
+                    return;
+                }
+                // alertData est un objet { "🚨 Harvester Déconnecté": X, "⚠️ Latence Élevée": Y }
                 new Chart(document.getElementById('alertsChart').getContext('2d'), {
                     type: 'doughnut',
                     data: {
