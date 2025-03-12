@@ -3,7 +3,7 @@ import smtplib
 from email.mime.text import MIMEText
 from flask import Flask, render_template, jsonify, Response, request
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 import mysql.connector  # <-- Connecteur MySQL
 import os
 
@@ -31,16 +31,7 @@ def get_connection():
 def index():
     return render_template("index.html")
 
-@app.route("/harvester/<int:harvester_id>")
-def harvester_detail(harvester_id):
-    # Récupérer la liste depuis la DB
-    data = get_harvesters_data()["harvesters"]
-    harvester = next((h for h in data if h["id"] == harvester_id), None)
 
-    if harvester:
-        return render_template("harvester.html", harvester=harvester)
-    else:
-        return "Harvester non trouvé", 404
 
 @app.route("/stats")
 def stats():
@@ -66,53 +57,168 @@ def clear_alerts():
 # ======================== #
 # 🔹 FONCTIONS DES DONNÉES
 # ======================== #
+from datetime import datetime, timedelta
+
 def get_harvesters_data():
-    """
-    Récupère la liste des 'Harvesters' depuis la table reseau.
-    On simule l'état, la version et la latence selon l'ID_reseau pour l'exemple.
-    """
-    conn = get_connection()
+    conn = get_connection()  # fonction qui retourne la connexion MySQL
     cursor = conn.cursor(dictionary=True)
     
-    # Récupérer tous les réseaux
     cursor.execute("SELECT ID_reseau, subnet, nombre_machine, dateheure FROM reseau ORDER BY ID_reseau")
     rows = cursor.fetchall()
 
     data = {"harvesters": []}
+    now = datetime.now()
+
     for row in rows:
-        # Déterminer un 'Harvester' :
-        # - name, ip => row["subnet"]
-        # - state => "connected" / "disconnected"
-        # - latence_wan => "28ms", "N/A", "120ms", etc.
-        # - version => "1.2.0", "1.1.5", etc.
-        
-        # EXEMPLE : on fait un switch sur l'ID_reseau
-        if row["ID_reseau"] == 1:
-            state = "connected"
-            version = "1.2.0"
-            latence_wan = "28ms"
-        elif row["ID_reseau"] == 2:
-            state = "disconnected"
-            version = "1.1.5"
-            latence_wan = "N/A"
+        # Extraire la date/heure du dernier scan
+        last_scan = row["dateheure"]  # type: datetime ou None
+
+        if last_scan is not None:
+            elapsed_seconds = (now - last_scan).total_seconds()
+            # 30 secondes après le scan => disconnected
+            if elapsed_seconds <= 120 :
+                state = "connected"
+            else:
+                state = "disconnected"
         else:
-            state = "connected"
-            version = "1.1.5"
-            latence_wan = "120ms"
-        
+            # Si on n'a pas de date de scan, on considère "disconnected"
+            state = "disconnected"
+
         data["harvesters"].append({
             "id": row["ID_reseau"],
             "name": f"Harvester #{row['ID_reseau']}",
             "ip": row["subnet"],
             "state": state,
-            "version": version,
             "num_machines": row["nombre_machine"] or 0,
-            "latence_wan": latence_wan
+            # Exemple : si vous n'avez pas de vraie colonne latence en BDD,
+            # mettez "N/A" ou une valeur par défaut
+            "latence_wan": "N/A"
         })
     
     cursor.close()
     conn.close()
     return data
+def get_harvester_details(harvester_id):
+    """
+    Récupère toutes les infos (reseau + client + stats + hote + machine) liées
+    à un ID_reseau donné, et renvoie un dict complet exploitable par la page 'harvester'.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # 1) Récupérer le reseau + le client
+    #    (on suppose qu'un harvester correspond à un reseau)
+    query_reseau = """
+        SELECT 
+            r.ID_reseau,
+            r.subnet,
+            r.nombre_machine,
+            r.dateheure,
+            c.ID_client,
+            c.nom AS client_nom
+        FROM reseau r
+        JOIN client c ON r.ID_client = c.ID_client
+        WHERE r.ID_reseau = %s
+    """
+    cursor.execute(query_reseau, (harvester_id,))
+    row_reseau = cursor.fetchone()
+
+    if not row_reseau:
+        # Si on ne trouve pas ce réseau, on renvoie None
+        cursor.close()
+        conn.close()
+        return None
+
+    # 2) Récupérer la liste des statistiques
+    #    (nombre_scan, temps_moyen, dateheure, etc.)
+    query_stats = """
+        SELECT 
+            ID_statistique,
+            dateheure,
+            nombre_scan,
+            temps_moyen
+        FROM statistique
+        WHERE ID_reseau = %s
+        ORDER BY dateheure DESC
+    """
+    cursor.execute(query_stats, (harvester_id,))
+    stats_rows = cursor.fetchall()
+
+    # 3) Récupérer la liste des hôtes
+    query_hote = """
+        SELECT 
+            ID_hote,
+            nom,
+            OS,
+            version_os,
+            ip_adress
+        FROM hote
+        WHERE ID_reseau = %s
+    """
+    cursor.execute(query_hote, (harvester_id,))
+    hotes_rows = cursor.fetchall()
+
+    # 4) Récupérer la liste des machines
+    #    (ip_adress, port, service, vulnerabilite, etc.)
+    query_machine = """
+        SELECT
+            ID_machine,
+            ip_adress,
+            port,
+            service,
+            vulnerabilite
+        FROM machine
+        WHERE ID_reseau = %s
+    """
+    cursor.execute(query_machine, (harvester_id,))
+    machine_rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    # Construire l'objet final harvester
+    # On reprend la même logique de "connected"/"disconnected" sur 30s, si besoin
+    from datetime import datetime
+    now = datetime.now()
+    state = "disconnected"
+    if row_reseau["dateheure"]:
+        elapsed = (now - row_reseau["dateheure"]).total_seconds()
+        if elapsed <= 30:
+            state = "connected"
+
+    harvester_details = {
+        "id": row_reseau["ID_reseau"],
+        "ip": row_reseau["subnet"],
+        "nombre_machine": row_reseau["nombre_machine"],
+        "dateheure_scan": row_reseau["dateheure"],
+        "state": state,
+        "client": {
+            "id_client": row_reseau["ID_client"],
+            "nom": row_reseau["client_nom"]
+        },
+        "stats": stats_rows,       # liste de dict
+        "hotes": hotes_rows,       # liste de dict
+        "machines": machine_rows   # liste de dict
+    }
+    return harvester_details
+
+
+@app.route("/harvester/<int:harvester_id>")
+def harvester_detail(harvester_id):
+    """
+    Page détaillée pour un 'harvester' (reseau).
+    On va y afficher tout ce qu'on sait : reseau, client, stats, hotes, machines...
+    """
+    harvester = get_harvester_details(harvester_id)
+    if not harvester:
+        return "Harvester non trouvé", 404
+
+    # Pour l'affichage, on veut un 'name' par cohérence avec index.html
+    # ex: "Harvester #1"
+    harvester["name"] = f"Harvester #{harvester_id}"
+
+    return render_template("harvester.html", harvester=harvester)
+
 
 def get_stats_data():
     """

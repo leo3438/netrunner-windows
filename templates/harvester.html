@@ -4,96 +4,77 @@
     <meta charset="UTF-8">
     <title>Détails du Harvester</title>
     <style>
-        /* Styles généraux */
-body {
-  font-family: 'Arial', sans-serif;
-  margin: 20px;
-  background: #f4f4f4;
-  color: #333;
-  text-align: center;
-}
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+          background: #f4f4f4;
+          color: #333;
+          text-align: center;
+        }
+        .section {
+          background: white;
+          border-radius: 10px;
+          box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+          width: 80%;
+          margin: 20px auto;
+          padding: 20px;
+          text-align: left;
+        }
+        h1, h2, h3 {
+          text-align: center;
+        }
+        table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 10px 0;
+        }
+        th, td {
+          padding: 8px 12px;
+          border: 1px solid #ddd;
+        }
+        th {
+          background: #007bff;
+          color: white;
+        }
+        .connected {
+          color: green;
+          font-weight: bold;
+        }
+        .disconnected {
+          color: red;
+          font-weight: bold;
+        }
+        button {
+          background: #007bff;
+          color: white;
+          padding: 10px 15px;
+          border: none;
+          cursor: pointer;
+          border-radius: 5px;
+          transition: 0.3s;
+        }
+        button:hover {
+          background: #0056b3;
+        }
 
-/* Tableaux */
-table {
-  border-collapse: collapse;
-  width: 90%;
-  margin: 20px auto;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-th, td {
-  padding: 12px 15px;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-
-th {
-  background: #007bff;
-  color: white;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-th:hover {
-  background: #0056b3;
-}
-
-/* Lignes alternées */
-tr:nth-child(even) {
-  background: #f9f9f9;
-}
-
-/* État des Harvesters */
-.connected { color: green; font-weight: bold; }
-.disconnected { color: red; font-weight: bold; }
-
-/* Boutons */
-button {
-  background: #007bff;
-  color: white;
-  padding: 10px 15px;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: 0.3s;
-}
-
-button:hover {
-  background: #0056b3;
-}
-
-/* Mode sombre */
-body.dark-mode {
-  background-color: #121212;
-  color: white;
-}
-
-body.dark-mode table {
-  background: #1e1e1e;
-  color: white;
-}
-
-body.dark-mode th {
-  background: #333;
-}
-
-body.dark-mode td {
-  background: #222;
-  color: white;
-}
-
-/* Effet sur les liens */
-a {
-  color: #007bff;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
+        /* Mode sombre */
+        body.dark-mode {
+          background-color: #121212;
+          color: white;
+        }
+        .section.dark {
+          background: #1e1e1e;
+          color: white;
+        }
+        body.dark-mode th {
+          background: #333;
+        }
+        body.dark-mode td {
+          background: #222;
+        }
+        .dark-mode a {
+          color: #bbb;
+        }
     </style>
 </head>
 <body>
@@ -102,38 +83,143 @@ a:hover {
     <button id="dark-mode-toggle">🌙 Mode sombre</button>
 
     <h1>Détails de {{ harvester.name }}</h1>
-    <table>
-        <tr><th>ID</th><td>{{ harvester.id }}</td></tr>
-        <tr><th>Nom</th><td>{{ harvester.name }}</td></tr>
-        <tr><th>IP</th><td>{{ harvester.ip }}</td></tr>
-        <tr><th>État</th><td class="{{ harvester.state }}">{{ harvester.state }}</td></tr>
-        <tr><th>Version</th><td>{{ harvester.version }}</td></tr>
-        <tr><th>Machines détectées</th><td>{{ harvester.num_machines }}</td></tr>
-        <tr><th>Latence WAN</th><td>{{ harvester.latence_wan }}</td></tr>
-    </table>
 
-    <p><a href="/">⬅ Retour à la liste</a></p>
+    <!-- Section infos Harvester -->
+    <div class="section" id="section-harvester">
+      <h2>Informations générales</h2>
+      <p><strong>ID:</strong> {{ harvester.id }}</p>
+      <p><strong>État:</strong> <span class="{{ harvester.state }}">{{ harvester.state }}</span></p>
+      <p><strong>IP/Subnet:</strong> {{ harvester.ip }}</p>
+      <p><strong>Nombre de machines:</strong> {{ harvester.nombre_machine }}</p>
+      <p><strong>Dernier scan:</strong> {{ harvester.dateheure_scan }}</p>
+    </div>
+
+    <!-- Section Infos client -->
+    <div class="section" id="section-client">
+      <h2>Client</h2>
+      <p><strong>ID Client:</strong> {{ harvester.client.id_client }}</p>
+      <p><strong>Nom Client:</strong> {{ harvester.client.nom }}</p>
+    </div>
+
+    <!-- Section Statistiques -->
+    <div class="section" id="section-stats">
+      <h2>Statistiques</h2>
+      {% if harvester.stats|length == 0 %}
+        <p>Aucune statistique disponible.</p>
+      {% else %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID Stat</th>
+            <th>Date/Heure</th>
+            <th>Nombre de scans</th>
+            <th>Temps moyen</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for s in harvester.stats %}
+          <tr>
+            <td>{{ s.ID_statistique }}</td>
+            <td>{{ s.dateheure }}</td>
+            <td>{{ s.nombre_scan }}</td>
+            <td>{{ s.temps_moyen }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+
+    <!-- Section Hôtes -->
+    <div class="section" id="section-hotes">
+      <h2>Hôtes</h2>
+      {% if harvester.hotes|length == 0 %}
+        <p>Aucun hôte enregistré.</p>
+      {% else %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID Hôte</th>
+            <th>Nom</th>
+            <th>OS</th>
+            <th>Version OS</th>
+            <th>IP (int)</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for h in harvester.hotes %}
+          <tr>
+            <td>{{ h.ID_hote }}</td>
+            <td>{{ h.nom }}</td>
+            <td>{{ h.OS }}</td>
+            <td>{{ h.version_os }}</td>
+            <td>{{ h.ip_adress }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+
+    <!-- Section Machines -->
+    <div class="section" id="section-machines">
+      <h2>Machines & vulnérabilités</h2>
+      {% if harvester.machines|length == 0 %}
+        <p>Aucune machine enregistrée.</p>
+      {% else %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID Machine</th>
+            <th>IP (int)</th>
+            <th>Port</th>
+            <th>Service</th>
+            <th>Vulnérabilité</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for m in harvester.machines %}
+          <tr>
+            <td>{{ m.ID_machine }}</td>
+            <td>{{ m.ip_adress }}</td>
+            <td>{{ m.port }}</td>
+            <td>{{ m.service }}</td>
+            <td>{{ m.vulnerabilite }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+
+    <p style="text-align:center;">
+      <a href="/"><button>⬅ Retour à la liste</button></a>
+    </p>
 
     <script>
-        // Gestion du mode sombre
-        const toggleButton = document.getElementById('dark-mode-toggle');
-      
-        if (localStorage.getItem('dark-mode') === 'enabled') {
-            document.body.classList.add('dark-mode');
-            toggleButton.textContent = '☀️ Mode clair';
-        }
+      // Gestion du mode sombre
+      const toggleButton = document.getElementById('dark-mode-toggle');
+      if (localStorage.getItem('dark-mode') === 'enabled') {
+          document.body.classList.add('dark-mode');
+          toggleButton.textContent = '☀️ Mode clair';
+          // On rend aussi les sections en dark
+          document.querySelectorAll('.section').forEach(sec => sec.classList.add('dark'));
+      }
 
-        toggleButton.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            if (document.body.classList.contains('dark-mode')) {
-                localStorage.setItem('dark-mode', 'enabled');
-                toggleButton.textContent = '☀️ Mode clair';
-            } else {
-                localStorage.setItem('dark-mode', 'disabled');
-                toggleButton.textContent = '🌙 Mode sombre';
-            }
-        });
+      toggleButton.addEventListener('click', () => {
+          document.body.classList.toggle('dark-mode');
+          let isDark = document.body.classList.contains('dark-mode');
+          document.querySelectorAll('.section').forEach(sec => {
+              sec.classList.toggle('dark', isDark);
+          });
+          if (isDark) {
+              localStorage.setItem('dark-mode', 'enabled');
+              toggleButton.textContent = '☀️ Mode clair';
+          } else {
+              localStorage.setItem('dark-mode', 'disabled');
+              toggleButton.textContent = '🌙 Mode sombre';
+          }
+      });
     </script>
-
 </body>
 </html>

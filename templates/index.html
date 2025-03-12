@@ -176,6 +176,7 @@ table:hover {
 </br></br>
   <p>Liste des Harvesters :</p>
   <div id="loader">⏳ Chargement des données...</div>
+
   <table id="harvesters-table">
     <thead>
       <tr>
@@ -183,7 +184,7 @@ table:hover {
         <th>Nom</th>
         <th>IP</th>
         <th>État</th>
-        <th onclick="sortTable('version')">Version <span id="icon-version">🔽</span></th>
+        <!-- Suppression de la colonne Version -->
         <th onclick="sortTable('num_machines')">Machines détectées <span id="icon-num_machines">🔽</span></th>
         <th onclick="sortTable('latence_wan')">Latence WAN <span id="icon-latence_wan">🔽</span></th>
       </tr>
@@ -228,7 +229,7 @@ table:hover {
             <td><a href="/harvester/${h.id}">${h.name}</a></td>
             <td>${h.ip}</td>
             <td class="${h.state}">${h.state}</td>
-            <td>${h.version}</td>
+            <!-- On n’affiche plus la version ici -->
             <td>${h.num_machines}</td>
             <td>${h.latence_wan}</td>
           `;
@@ -269,7 +270,8 @@ table:hover {
 
     // Mettre à jour les icônes des en-têtes
     function updateIcons(activeColumn) {
-      const columns = ["version", "num_machines", "latence_wan"];
+      // On ne gère plus "version", donc on supprime la référence
+      const columns = ["num_machines", "latence_wan"];
       
       columns.forEach(col => {
         const iconElement = document.getElementById(`icon-${col}`);
