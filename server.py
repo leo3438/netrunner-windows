@@ -315,11 +315,11 @@ def export_csv():
 # ======================== #
 # 🔹 CONFIGURATION EMAIL (ALERTES) + LOGS
 # ======================== #
-ALERT_EMAIL = "bourlleo@gmail.com"  # Mettez ici votre email
+ALERT_EMAIL = ""  # Mettez ici votre email
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SMTP_USER = "bourlleo@gmail.com"
-SMTP_PASSWORD = "aqxrrqfjqphxqgaz"  # Gmail = mdp d'application
+SMTP_USER = ""
+SMTP_PASSWORD = ""  # Gmail = mdp d'application
 LOG_FILE = "alerts.log"
 
 alertes_envoyees = set()  # Stocke les alertes déjà envoyées
